@@ -8,6 +8,7 @@
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "compression": "^1.8.1",
     "firebase": "^10.14.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -15,9 +16,11 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "build:prod": "GENERATE_SOURCEMAP=false INLINE_RUNTIME_CHUNK=false craco build",
+    "analyze": "source-map-explorer 'build/static/js/*.js' --html > build/analysis.html && start build/analysis.html",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -37,5 +40,13 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@loadable/babel-plugin": "^5.16.1",
+    "@loadable/component": "^5.16.7",
+    "@loadable/server": "^5.16.7",
+    "@loadable/webpack-plugin": "^5.15.2",
+    "compression-webpack-plugin": "^11.1.0",
+    "source-map-explorer": "^2.5.3"
   }
 }
