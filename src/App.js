@@ -225,7 +225,7 @@ function App() {
         src={`${process.env.PUBLIC_URL}/The%20Sound%20Of%20Praise.png`}
         alt="The Sound Of Praise"
       />
-      <h1>NEW BEGINNINGS CONCERT</h1>
+      <h1>NEW BIGINNINGS CONCERT</h1>
       <form onSubmit={handleSubmit} noValidate className="form">
         <div className="field">
           <label htmlFor="name">Your name</label>
@@ -252,7 +252,7 @@ function App() {
         </div>
 
         <div className="field">
-          <label htmlFor="excited">What are you excited to start?</label>
+          <label htmlFor="excited">What are you excited to start as a new biginning?</label>
           <input id="excited" name="excited" type="text" value={form.excited} onChange={handleChange} placeholder="Your answer" />
           {error(form.excited)}
         </div>
