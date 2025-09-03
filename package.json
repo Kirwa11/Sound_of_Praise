@@ -16,11 +16,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
-    "build:prod": "GENERATE_SOURCEMAP=false INLINE_RUNTIME_CHUNK=false craco build",
-    "analyze": "source-map-explorer 'build/static/js/*.js' --html > build/analysis.html && start build/analysis.html",
-    "test": "craco test",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
