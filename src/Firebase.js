@@ -1,7 +1,6 @@
-// Firebase setup: Firestore + Messaging exports
+// Firebase v10+ modular SDK
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -11,16 +10,26 @@ const firebaseConfig = {
   storageBucket: 'sound-of-praise.firebasestorage.app',
   messagingSenderId: '402038461389',
   appId: '1:402038461389:web:08aeaadb37c6c5bcf02a84',
-  measurementId: 'G-5Q0F744E5X',
+  measurementId: 'G-5Q0F744E5X'
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Firestore instance
-const db = getFirestore(app);
+// Initialize Firestore
+export const db = getFirestore(app);
 
-// Messaging instance
-const messaging = getMessaging(app);
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence can only be enabled in one tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('The current browser doesn\'t support all of the features required to enable offline persistence');
+  }
+});
 
-export { app, db, messaging, getToken, onMessage };
+// Initialize other Firebase services here if needed
+// import { getAuth } from 'firebase/auth';
+// import { getStorage } from 'firebase/storage';
+// export const auth = getAuth(app);
+// export const storage = getStorage(app);

@@ -1,10 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import { db, messaging, getToken } from './Firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { EVENT_INFO, buildNotificationBody } from './config';
+import { db } from './Firebase';
+import { addDoc, collection } from 'firebase/firestore';
 
 function App() {
+  useEffect(() => {
+    let isMounted = true;
+    
+    const testFirestoreConnection = async () => {
+      if (!isMounted) return;
+      
+      try {
+        console.log('Testing Firestore connection...');
+        const testCollection = collection(db, 'connection_test');
+        const testData = {
+          timestamp: new Date().toISOString(),
+          message: 'Testing Firestore connection',
+          success: true
+        };
+        
+        const testDoc = await addDoc(testCollection, testData);
+        if (isMounted) {
+          console.log('Firestore connection successful! Test document ID:', testDoc.id);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Firestore connection error:', {
+            code: error.code,
+            message: error.message,
+            name: error.name
+          });
+        }
+      }
+    };
+
+    testFirestoreConnection();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Form state
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -15,69 +53,167 @@ function App() {
     otherSource: ''
   });
   const [submitted, setSubmitted] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const sendEmail = async (emailData) => {
+    try {
+      // EmailJS configuration
+      const serviceId = 'service_lbw63r5'; // Your EmailJS service ID
+      const templateId = 'template_owh7pga'; // Your template ID from EmailJS
+      
+      // Prepare template parameters - ensure these match your EmailJS template
+      const templateParams = {
+        to_email: emailData.to_email || 'recipient@example.com',
+        to_name: emailData.to_name || 'Guest',
+        event_name: emailData.event_name || 'New Beginnings Concert',
+        event_date: emailData.event_date || 'Sunday 28th September 2025',
+        event_time: emailData.event_time || '2:00 pm - 5:00 pm',
+        event_venue: emailData.event_venue || 'UON Main Campus',
+        contact_phone: emailData.contact_phone || '+254111872056',
+        contact_email: emailData.contact_email || 'Re.fous@gmail.com',
+        from_name: 'New Beginnings Team',
+        reply_to: 'nyamwayagerald@gmail.com'
+      };
+      
+      console.log('Sending email with params:', templateParams);
+      
+      // Check if EmailJS is loaded
+      if (typeof window.emailjs === 'undefined') {
+        console.error('EmailJS is not loaded. Make sure the EmailJS SDK is included in your HTML.');
+        return false;
+      }
+      
+      // Send email using EmailJS v4
+      const response = await window.emailjs.send(
+        serviceId,
+        templateId,
+        templateParams
+      );
+      
+      console.log('Email sent successfully!', response);
+      return true;
+      
+    } catch (error) {
+      console.error('Failed to send email:', {
+        status: error.status,
+        text: error.text,
+        message: error.message,
+        details: error
+      });
+      return false;
+    }
+  };
+
+  const showToast = (message, isError = false) => {
+    const toast = document.createElement('div');
+    toast.className = `toast ${isError ? 'error' : 'success'}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Auto remove toast after 5 seconds
+    setTimeout(() => {
+      toast.classList.add('fade-out');
+      setTimeout(() => document.body.removeChild(toast), 300);
+    }, 5000);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true);
+    showToast('Submitting your registration...');
 
-    const valid = (
-      form.name &&
-      form.email &&
-      form.phone &&
-      form.idNumber &&
-      form.excited &&
-      form.source &&
-      (form.source !== 'other' || form.otherSource)
-    );
-    if (!valid) return;
+    // Validate required fields
+    const requiredFields = ['name', 'email', 'phone', 'idNumber', 'excited', 'source'];
+    const missingFields = requiredFields.filter(field => !form[field]?.trim());
+    
+    // Additional validation for 'other' source
+    if (form.source === 'other' && !form.otherSource?.trim()) {
+      missingFields.push('otherSource');
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (form.email && !emailRegex.test(form.email)) {
+      showToast('Please enter a valid email address', true);
+      setSubmitted(false);
+      return;
+    }
 
-    const payload = {
-      ...form,
-      source: form.source === 'other' ? form.otherSource : form.source,
+    if (missingFields.length > 0) {
+      showToast(`Please fill in all required fields: ${missingFields.join(', ')}`, true);
+      setSubmitted(false);
+      return;
+    }
+
+    // Prepare registration data
+    const registrationData = {
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: form.phone.trim(),
+      idNumber: form.idNumber.trim(),
+      excited: form.excited.trim(),
+      source: form.source === 'other' ? form.otherSource.trim() : form.source,
+      timestamp: new Date().toISOString()
     };
 
-    // Get FCM token using your VAPID public key
-    let fcmToken = '';
     try {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        fcmToken = await getToken(messaging, {
-          vapidKey: 'BKJImrpWaNAduRrYJDBg1BcvvTnMY41_C55qpyqy4UVEY3VeG3hDgPKJB8nisEtoirip5_rzsATOlXWYUgleRnc',
-          serviceWorkerRegistration: swReg,
+      // 1. Save to Firestore
+      const docRef = await addDoc(collection(db, 'registrations'), registrationData);
+      console.log('Registration saved with ID: ', docRef.id);
+      
+      // 2. Prepare email data
+      const emailData = {
+        to_email: registrationData.email,
+        to_name: registrationData.name,
+        event_name: 'New Beginnings Concert',
+        event_date: 'Sunday 28th September 2025',
+        event_time: '2:00 pm - 5:00 pm',
+        event_venue: 'UON Main Campus',
+        contact_phone: '+254111872056',
+        contact_email: 'Re.fous@gmail.com'
+      };
+
+      // 3. Send email in the background
+      sendEmail(emailData)
+        .then(success => {
+          if (success) {
+            console.log('Confirmation email sent successfully');
+          } else {
+            console.warn('Failed to send confirmation email');
+          }
+        })
+        .catch(error => {
+          console.error('Email sending error:', error);
         });
-        console.log('FCM token:', fcmToken);
-      } else {
-        console.warn('Notifications permission not granted');
-      }
-    } catch (err) {
-      console.error('FCM token error:', err);
-    }
 
-    // Save to Firestore
-    try {
-      await addDoc(collection(db, 'registrations'), {
-        ...payload,
-        fcmToken,
-        createdAt: serverTimestamp(),
+      // 4. Show success message
+      showToast('Registration successful!');
+      
+      // 5. Reset form
+      setForm({
+        name: '',
+        email: '',
+        phone: '',
+        idNumber: '',
+        excited: '',
+        source: '',
+        otherSource: ''
       });
-      console.log('Registration submitted:', payload);
-    } catch (err) {
-      console.error('Error saving registration:', err);
+      
+    } catch (error) {
+      console.error('Registration error:', {
+        code: error.code,
+        message: error.message,
+        details: error
+      });
+      showToast('Failed to save registration. Please try again.', true);
+    } finally {
+      setSubmitted(false);
     }
-
-    // Detailed success message using your event info
-    const detailsMsg = `${EVENT_INFO.title}\n${buildNotificationBody()}`;
-    setSuccessMsg(detailsMsg);
-
-    setForm({ name: '', email: '', phone: '', idNumber: '', excited: '', source: '', otherSource: '' });
-    setSubmitted(false);
   };
 
   const error = (v) => (submitted && !v ? <span className="error">Required</span> : null);
@@ -89,8 +225,7 @@ function App() {
         src={`${process.env.PUBLIC_URL}/The%20Sound%20Of%20Praise.png`}
         alt="The Sound Of Praise"
       />
-      {successMsg && <div className="success">{successMsg}</div>}
-      <h1>NEW BIGINNINGS CONCERT</h1>
+      <h1>NEW BEGINNINGS CONCERT</h1>
       <form onSubmit={handleSubmit} noValidate className="form">
         <div className="field">
           <label htmlFor="name">Your name</label>
