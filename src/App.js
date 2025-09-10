@@ -252,7 +252,7 @@ function App() {
         </div>
 
         <div className="field">
-          <label htmlFor="excited">What are you excited to start as a new biginning?</label>
+          <label htmlFor="excited">What are you excited to start as a new big-inning?</label>
           <input id="excited" name="excited" type="text" value={form.excited} onChange={handleChange} placeholder="Your answer" />
           {error(form.excited)}
         </div>
