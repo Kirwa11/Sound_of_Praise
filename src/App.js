@@ -75,7 +75,7 @@ function App() {
         event_venue: emailData.event_venue || 'UON Main Campus',
         contact_phone: emailData.contact_phone || '+254111872056',
         contact_email: emailData.contact_email || 'Re.fous@gmail.com',
-        from_name: 'New Beginnings Team',
+        from_name: 'New Biginnings Team',
         reply_to: 'nyamwayagerald@gmail.com'
       };
       
@@ -225,7 +225,7 @@ function App() {
         src={`${process.env.PUBLIC_URL}/The%20Sound%20Of%20Praise.png`}
         alt="The Sound Of Praise"
       />
-      <h1>NEW BIGINNINGS CONCERT</h1>
+      <h1>NEW BIG-INNINGS CONCERT</h1>
       <form onSubmit={handleSubmit} noValidate className="form">
         <div className="field">
           <label htmlFor="name">Your name</label>
