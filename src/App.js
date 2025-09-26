@@ -62,8 +62,8 @@ function App() {
   const sendEmail = async (emailData) => {
     try {
       // EmailJS configuration
-      const serviceId = 'service_lbw63r5'; // Your EmailJS service ID
-      const templateId = 'template_owh7pga'; // Your template ID from EmailJS
+      const serviceId = 'service_g0b30zo'; // Your EmailJS service ID
+      const templateId = 'template_jc3cvio'; // Your template ID from EmailJS
       
       // Prepare template parameters - ensure these match your EmailJS template
       const templateParams = {
